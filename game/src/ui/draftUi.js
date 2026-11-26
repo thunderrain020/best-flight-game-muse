@@ -6,9 +6,41 @@
 // contract / maneuver ledger inside the panel — so nothing bleeds
 // over the HUD's GOALS card, which stays hidden while drafting.
 import { pill, label, B, R } from './text.js';
-import { SETS, RARITY_COLOR, setCounts, setBonusText } from '../data/perks.js';
+import { SETS, PERKS, RARITY_COLOR, setCounts, setBonusText } from '../data/perks.js';
 import { drawSetEmblem } from './emblems.js';
 import { drawLedger } from './codex.js';
+
+/** The right ~25% of the draft modal: what the pilot already flies
+ * with — fitted perks, set progress and the active leg/contract — so
+ * the modal feels balanced edge-to-edge instead of empty on the right. */
+function drawSidePanel(ctx, g, x, y, w, h) {
+  pill(ctx, x, y, w, h, 'rgba(245,238,218,0.06)', '#c9973f');
+  label(ctx, 'ACTIVE AIRFRAME', x + w / 2, y + 18, B(13), '#ffd94d', 'center');
+  label(ctx, 'FITTED PERKS', x + 14, y + 42, B(11), '#9fd8e8');
+  const fitted = (g.perks || []).map((id) => PERKS.find((p) => p.id === id)).filter(Boolean);
+  if (!fitted.length) label(ctx, 'No perks fitted yet', x + 14, y + 62, R(12), '#d8cdb4');
+  fitted.slice(0, 4).forEach((perk, i) => {
+    const ry = y + 62 + i * 22;
+    drawSetEmblem(ctx, perk.set, x + 22, ry, 10);
+    label(ctx, perk.name, x + 40, ry, R(12), '#f5eeda');
+    label(ctx, perk.rarity.toUpperCase(), x + w - 12, ry, B(10), RARITY_COLOR[perk.rarity], 'right');
+  });
+  const counts = setCounts(g.perks || []);
+  label(ctx, 'SET PROGRESS', x + 14, y + 158, B(11), '#9fd8e8');
+  ['THERMAL', 'TURBO', 'NAVIGATOR'].forEach((key, i) => {
+    const ry = y + 176 + i * 17;
+    label(ctx, `${key} ${counts[key]}/4`, x + 14, ry, R(12), '#f5eeda');
+    ctx.fillStyle = '#2a3a4a'; ctx.fillRect(x + 118, ry - 4, 84, 8);
+    ctx.fillStyle = SETS[key].color;
+    ctx.fillRect(x + 118, ry - 4, 84 * (counts[key] / 4), 8);
+    label(ctx, counts[key] >= 2 ? 'BONUS ON' : '—', x + w - 12, ry, B(10), counts[key] >= 2 ? '#7ee0a0' : '#8a8a8a', 'right');
+  });
+  const leg = g.legs[g.leg];
+  label(ctx, `${leg.id} — ${leg.name.toUpperCase()}`, x + 14, y + 226, B(12), '#ffd94d');
+  if (g.modifier) label(ctx, g.modifier.id || g.modifier.name || '', x + w - 12, y + 226, B(10), '#ffb52e', 'right');
+  const cText = g.contract ? `✦ ${g.contract.name} — ${g.contract.goal}` : 'No active contract';
+  label(ctx, cText.slice(0, 44), x + 14, y + 244, R(11), '#cfe3f0');
+}
 
 export function drawDraft(ctx, W, H, g) {
   void H;
@@ -42,6 +74,8 @@ export function drawDraft(ctx, W, H, g) {
       label(ctx, '✓ FITTED', x + cw / 2, y + 14, B(13), '#7ee0a0', 'center');
     }
   });
+  // Right side: the active airframe & contract panel.
+  drawSidePanel(ctx, g, startX + 3 * (cw + gap) + 2, py + 92, 264, 250);
   // REROLL + SET BONUSES threshold bar.
   const ry = py + 360;
   pill(ctx, px + 36, ry, 150, 34, g.rerolls > 0 ? '#c9973f' : 'rgba(8,6,12,0.9)', g.rerolls > 0 ? '#ffd94d' : undefined);

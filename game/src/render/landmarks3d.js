@@ -43,6 +43,16 @@ export function buildLandmarks(runway) {
     g.add(m);
     lights.push(m);
   }
+  // Glowing amber approach-light bar: three pairs marching toward the
+  // threshold, so the strip reads from a kilometre out.
+  for (let i = 0; i < 3; i++) {
+    for (const s of [-1, 1]) {
+      const a = new THREE.Mesh(new THREE.SphereGeometry(1.9, 10, 10),
+        new THREE.MeshBasicMaterial({ color: 0xffb52e }));
+      a.position.set(x + s * 12, y + 2.5, z - length / 2 - 34 - i * 30);
+      g.add(a);
+    }
+  }
   // Hangar beside the strip + control tower.
   g.add(box(70, 26, 46, hangarMat, x - 90, y + 13, z - 60));
   const roof = new THREE.Mesh(new THREE.CylinderGeometry(24, 24, 70, 3, 1), roofMat);

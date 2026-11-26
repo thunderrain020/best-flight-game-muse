@@ -9,6 +9,7 @@ import { getCamera, setupCamera, setupApronCamera } from './projection.js';
 import { makeWorld, updateWorld } from './world3d.js';
 import { makeSky, updateSky } from './sky.js';
 import { buildAircraft, updateAircraft } from './aircraft3d.js';
+import { buildTrails, updateTrails } from './trails.js';
 import { buildLandmarks, updateLandmarks } from './landmarks3d.js';
 import { buildRings, updateRings, drawRingLabels } from './rings.js';
 import { drawCockpit } from './cockpit.js';
@@ -34,9 +35,10 @@ function ensureThree() {
     const sky = makeSky(scene);
     const aircraft = buildAircraft();
     scene.add(aircraft.group);
+    const trails = buildTrails(aircraft.group);
     const parked = buildAircraft();
     scene.add(parked.group);
-    S = { ok: true, renderer, scene, world, sky, aircraft, parked, landmarks: null, rings: null, lastRunway: null, lastRings: null };
+    S = { ok: true, renderer, scene, world, sky, aircraft, parked, trails, landmarks: null, rings: null, lastRunway: null, lastRings: null };
     window.__caldera3d = { webgl: true };
   } catch (e) {
     window.__caldera3d = { webgl: false, error: String(e && e.message || e) };
@@ -64,6 +66,7 @@ function renderFlight3D(g) {
   updateWorld(S.world, g);
   updateSky(S.sky, S.scene, g);
   updateAircraft(S.aircraft, g);
+  updateTrails(S.trails, g);
   S.aircraft.group.visible = true;
   S.parked.group.visible = false;
   if (S.landmarks) updateLandmarks(S.landmarks, g);
@@ -84,7 +87,10 @@ function renderBrief3D(g) {
     S.parked.group.visible = true;
     S.parked.group.position.set(rw.x, rw.y + 2.5, rw.z);
     S.parked.group.rotation.order = 'YXZ';
-    S.parked.group.rotation.y = -0.45;
+    // Three-quarter angle on the apron: the flank, wings and brass
+    // cowling read heroically from the close apron camera instead of
+    // a thin head-on silhouette.
+    S.parked.group.rotation.y = 0.85;
     S.parked.group.rotation.x = 0;
     S.parked.group.rotation.z = 0;
     S.parked.spin = 0;

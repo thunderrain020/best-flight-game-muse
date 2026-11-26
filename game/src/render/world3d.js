@@ -5,18 +5,26 @@
 // sun-glint ocean, and the volcano's rising smoke.
 import * as THREE from '../../vendor/three.module.min.js';
 import { groundHeight, VOLCANO } from '../entities/terrain.js';
+import { smoothNoise } from '../core/util.js';
+import { buildScatter } from './scatter.js';
 
-/** Numeric elevation colour, mirroring entities/terrain groundColor. */
+/** Numeric elevation colour, mirroring entities/terrain groundColor,
+ * with ochre terraces and noise mottling so no slope reads flat. */
 function bandColor(x, z, h) {
   const dx = x - VOLCANO.x, dz = z - VOLCANO.z;
   const dv = Math.sqrt(dx * dx + dz * dz);
+  // Fine mottling: every slope carries light and dark patches.
+  const n = smoothNoise(x * 0.045 + 3, z * 0.045) * 0.05;
   if (h <= 2) return [0.11, 0.37, 0.54];
-  if (h <= 8) return [0.85, 0.77, 0.56];
-  if (dv < 260 && h > 180) return [1.0, 0.35, 0.15];
-  if (dv < 420 && h > 120) return [0.35, 0.23, 0.20];
-  if (h > 150) return [0.42, 0.35, 0.29];
-  const band = Math.floor(h / 34) % 2 === 0;
-  return band ? [0.25, 0.62, 0.30] : [0.18, 0.49, 0.24];
+  if (h <= 8) return [0.85 + n, 0.77 + n, 0.56];
+  if (dv < 260 && h > 180) return [1.0, 0.35 + n, 0.15];
+  if (dv < 420 && h > 120) return [0.35 + n, 0.23, 0.20];
+  if (h > 150) return [0.44 + n, 0.36 + n, 0.28 + n];
+  // Terraced emerald / ochre: narrow bands, so ridges read as steps.
+  const band = Math.floor(h / 17) % 4;
+  if (band === 3) return [0.72 + n, 0.58 + n, 0.30];
+  if (band === 2) return [0.30 + n, 0.58 + n, 0.28];
+  return band === 0 ? [0.25 + n, 0.62 + n, 0.30] : [0.18 + n, 0.49 + n, 0.24];
 }
 
 export function makeWorld(scene) {
@@ -90,7 +98,9 @@ export function makeWorld(scene) {
     transparent: true, opacity: 0.55, depthWrite: false,
   }));
   scene.add(smoke);
-  return { ocean, glint, lava, rim, lavaLight, smoke, smokeN: N };
+  // Living ground: trees, rocks and village roofs on the islands.
+  const scatter = buildScatter(scene);
+  return { ocean, glint, lava, rim, lavaLight, smoke, smokeN: N, scatter };
 }
 
 export function updateWorld(w, g) {

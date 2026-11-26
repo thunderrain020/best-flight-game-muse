@@ -4,6 +4,7 @@
 // The 2D overlay projects world points through this camera, so HUD
 // effects, ring labels and particles sit exactly on the 3D scene.
 import * as THREE from '../../vendor/three.module.min.js';
+import { VOLCANO } from '../entities/terrain.js';
 
 let camera = null;
 /** The shared perspective camera (created once, reused every frame). */
@@ -16,6 +17,7 @@ export function getCamera() {
 /** Chase (default) and cockpit camera poses, matching the V1 framing. */
 export function setupCamera(g) {
   const cam = getCamera();
+  if (cam.fov !== 62) { cam.fov = 62; cam.updateProjectionMatrix(); }
   const p = g.plane;
   const fx = Math.sin(p.heading), fz = Math.cos(p.heading);
   if (g.cam === 'cockpit') {
@@ -38,21 +40,25 @@ export function setupCamera(g) {
   cam.updateMatrixWorld(true);
   return cam;
 }
-/** A static camera for the hangar-apron view on the briefing hub. */
+/** A static camera for the hangar-apron view on the briefing hub.
+ * 2.5x closer than V2 and low, on the parked-plane -> volcano line:
+ * the camera sits ~66 m off the plane's nose quarter, looking back
+ * along the strip toward the smoking volcano, so the brass-and-ivory
+ * aircraft, the control tower, the lighthouse beam and the volcano
+ * all fill the right panel. A wider 70 deg field of view holds them
+ * together. Verified against groundHeight + projection probes. */
 export function setupApronCamera(g) {
   const cam = getCamera();
   const rw = g.runway;
   if (!rw) return setupCamera(g);
-  // Past the far end of the strip and high up, looking back along it
-  // with the view axis well left of the plane: the parked plane lands
-  // near the window's centre-right and the hangar sits left of it.
-  // The approach-side ridge hides the strip from a low camera, so
-  // this side clears the terrain (verified against groundHeight).
-  // The lookAt rides at runway level so the plane clears the
-  // briefing card at the window's foot.
-  cam.position.set(rw.x + 60, rw.y + 30, rw.z + 130);
+  const px = rw.x, py = rw.y + 4, pz = rw.z;
+  const dx = VOLCANO.x - px, dy = 310 - py, dz = VOLCANO.z - pz;
+  const len = Math.hypot(dx, dy, dz);
+  const ux = dx / len, uy = dy / len, uz = dz / len;
+  if (cam.fov !== 70) { cam.fov = 70; cam.updateProjectionMatrix(); }
+  cam.position.set(px - ux * 66, py - uy * 66 + 14, pz - uz * 66);
   cam.up.set(0, 1, 0);
-  cam.lookAt(rw.x - 86, rw.y + 0, rw.z + 9);
+  cam.lookAt(px + ux * 130 - 60, py + uy * 130 - 15, pz + uz * 130);
   cam.updateMatrixWorld(true);
   return cam;
 }

@@ -37,25 +37,26 @@ function cyl(rt, rb, h, mat, x, y, z, seg = 10) {
 
 export function buildAircraft() {
   const g = new THREE.Group();
-  // Fuselage: tapered brass tube, nose cone, cowling ring.
-  const fus = cyl(1.0, 1.7, 10.5, M.brass, 0, 0.2, 1.2, 12);
+  // Fuselage: sleeker tapered brass tube, longer and slimmer than V2,
+  // with a sharper nose cone and a slimmer cowling ring.
+  const fus = cyl(0.85, 1.45, 12.5, M.brass, 0, 0.2, 0.6, 12);
   fus.rotation.x = Math.PI / 2;
   g.add(fus);
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(1.0, 2.4, 12), M.red);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.85, 2.6, 12), M.red);
   nose.rotation.x = Math.PI / 2;
   nose.position.set(0, 0.2, 7.4);
   g.add(nose);
-  const cowl = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.28, 8, 16), M.brassDark);
+  const cowl = new THREE.Mesh(new THREE.TorusGeometry(1.32, 0.26, 8, 16), M.brassDark);
   cowl.position.set(0, 0.2, 5.6);
   g.add(cowl);
   // Glass canopy + dark dash + three lit gauge discs inside.
   const canopy = new THREE.Mesh(new THREE.SphereGeometry(1.25, 14, 10), M.glass);
-  canopy.scale.set(0.95, 0.75, 1.5);
-  canopy.position.set(0, 1.15, 2.4);
+  canopy.scale.set(0.9, 0.72, 1.7);
+  canopy.position.set(0, 1.15, 2.2);
   g.add(canopy);
   g.add(box(1.9, 0.7, 0.5, M.dark, 0, 0.95, 2.9));
   for (let i = -1; i <= 1; i++) {
-    const d = new THREE.Mesh(new THREE.CircleGeometry(0.22, 12), i === 0 ? M.amber : M.cyan);
+    const d = new THREE.Mesh(new THREE.CircleGeometry(0.28, 12), i === 0 ? M.amber : M.cyan);
     d.position.set(i * 0.6, 1.05, 3.18);
     g.add(d);
   }
@@ -73,13 +74,13 @@ export function buildAircraft() {
     nav.position.set(s * 13, 0.6, 0.6);
     g.add(nav);
   }
-  // Twin booms, tailplane halves, twin fins, tail cone.
+  // Twin booms, tailplane halves, thin crisp twin fins, tail cone.
   for (const s of [-1, 1]) {
-    const boom = cyl(0.42, 0.42, 7.6, M.brassDark, s * 1.9, 0.2, -4.6, 8);
+    const boom = cyl(0.38, 0.38, 7.6, M.brassDark, s * 1.9, 0.2, -4.6, 8);
     boom.rotation.x = Math.PI / 2;
     g.add(boom);
     g.add(box(4.6, 0.35, 1.8, M.shade, s * 4.2, 0.55, -7.6));
-    const fin = box(0.3, 3.0, 1.6, M.red, s * 1.9, 1.9, -7.9);
+    const fin = box(0.18, 3.2, 1.5, M.red, s * 1.9, 1.9, -7.9);
     fin.rotation.x = -0.12;
     g.add(fin);
   }

@@ -29,14 +29,24 @@ export function makeSky(scene) {
   sunSprite.scale.set(260, 260, 1);
   scene.add(sunSprite);
   const clouds = [];
+  // 3D volumetric clouds: low-poly multi-puff clusters, each a group
+  // of flat-shaded icosahedron puffs at its own altitude — real
+  // geometry the camera can fly past, never a flat sprite.
+  const puffGeo = new THREE.IcosahedronGeometry(1, 0);
+  const puffMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.88 });
   for (let i = 0; i < 10; i++) {
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: tex, color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false,
-    }));
-    s.scale.set(260 + (i % 4) * 90, 70 + (i % 3) * 22, 1);
-    s.userData.base = { x: (i * 397) % 1600 - 800, y: 420 + (i % 5) * 55, z: 500 + i * 620 };
-    scene.add(s);
-    clouds.push(s);
+    const cluster = new THREE.Group();
+    const puffs = 4 + (i % 3);
+    for (let k = 0; k < puffs; k++) {
+      const p = new THREE.Mesh(puffGeo, puffMat);
+      const s = 42 + ((i * 7 + k * 13) % 46);
+      p.scale.set(s, s * 0.45, s * 0.7);
+      p.position.set((k - puffs / 2) * 52 + ((i * 31 + k * 17) % 24) - 12, ((k * 29) % 26) - 10, ((i * 19 + k * 23) % 36) - 18);
+      cluster.add(p);
+    }
+    cluster.userData.base = { x: (i * 397) % 1600 - 800, y: 420 + (i % 5) * 55, z: 500 + i * 620 };
+    scene.add(cluster);
+    clouds.push(cluster);
   }
   // Gradient sky dome (top colour -> horizon colour), so the sky is
   // a real gradient, not the flat scene background.
@@ -83,6 +93,6 @@ export function updateSky(sky, scene, g) {
   for (const c of sky.clouds) {
     const b = c.userData.base;
     c.position.set(b.x + ((drift + b.z) % 800) - 400, b.y, b.z + g.plane.z * 0.02);
-    c.material.opacity = night ? 0.22 : 0.5;
+    c.children[0].material.opacity = night ? 0.5 : 0.88;
   }
 }
