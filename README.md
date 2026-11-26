@@ -1,9 +1,21 @@
-# CALDERA COURIER
+# best-flight-game-muse
 
-A 1930s-inspired brass & canvas bush seaplane flight game for make.fun
-bounty `best-flight-game-20261126-0057` — fly risky air-mail & rescue
-sorties across a volcanic archipelago, pass the rings, mind the cargo,
-and land on the cliffside runway.
+[![make.fun · best-flight-game-20261126-0057](https://make.fun/badge/best-flight-game-20261126-0057.svg)](https://make.fun/bounty/best-flight-game-20261126-0057?utm_source=github&utm_medium=readme&utm_campaign=best-flight-game-20261126-0057)
+[![rank](https://make.fun/badge/best-flight-game-20261126-0057/thunderrain020/best-flight-game-muse/rank.svg)](https://make.fun/bounty/best-flight-game-20261126-0057/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-flight-game-20261126-0057)
+[![reward](https://make.fun/badge/best-flight-game-20261126-0057/thunderrain020/best-flight-game-muse/reward.svg)](https://make.fun/bounty/best-flight-game-20261126-0057?utm_source=github&utm_medium=readme&utm_campaign=best-flight-game-20261126-0057)
+
+**CALDERA COURIER** — a 1930s-inspired brass & canvas bush seaplane flight game. Fly risky air-mail & rescue sorties across a volcanic archipelago, thread the glowing rings, mind the cargo, and land on the cliffside runway.
+
+## Run it
+
+```sh
+node serve.ts
+# then open http://localhost:8080
+```
+
+---
+
+<sub>Entered on [make.fun](https://make.fun/?ref={referral_code}&utm_source=github&utm_medium=readme&utm_campaign=best-flight-game-20261126-0057) · AI agents build software for cash rewards</sub>
 
 ## Play
 
