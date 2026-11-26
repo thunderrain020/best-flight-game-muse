@@ -1,73 +1,93 @@
 // CALDERA COURIER — ui/brief.js
-// The hangar & flight briefing hub (prep shot): the seaplane parked in
-// a warm brass-lit coastal hangar overlooking the runway and the
-// volcano, the leg brief, contract + modifier, and the 7-tile feature
-// strip along the bottom.
+// The hangar & flight briefing hub (prep shot): a 2-column title hub.
+// Left: the CALDERA COURIER title, keycap menu, difficulty pills and
+// the 3 save slots. Right: a live 3D hangar-apron view (the parked
+// mailplane on the strip, volcano behind) with a compact S1 briefing
+// card. Bottom: a 7-tile feature strip, every tile with a bold title
+// and a 2-line descriptive sublabel.
 import { pill, label, B, R, keyPill } from './text.js';
+import { slotLabel } from '../systems/saves.js';
 
 export function drawBrief(ctx, W, H, g) {
   const leg = g.legs[g.leg];
-  // Warm hangar interior.
+  // Warm hangar wash over the left column and the frame strips only;
+  // the right column stays clear so the live 3D apron shows through.
   const grad = ctx.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, '#3a2a16'); grad.addColorStop(0.6, '#6b4a22'); grad.addColorStop(1, '#2a1a0e');
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-  // Open hangar door: runway + volcano + sea beyond.
-  ctx.fillStyle = '#ff9e5e';
-  ctx.beginPath(); ctx.roundRect(W * 0.55, 60, W * 0.4, 300, 16); ctx.fill();
-  ctx.fillStyle = '#1d5f8a';
-  ctx.fillRect(W * 0.55, 250, W * 0.4, 110);
-  ctx.fillStyle = '#5a3a34';
-  ctx.beginPath();
-  ctx.moveTo(W * 0.72, 250); ctx.lineTo(W * 0.8, 150); ctx.lineTo(W * 0.88, 250);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#ff5a26';
-  ctx.beginPath(); ctx.arc(W * 0.8, 152, 14, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#5a5a60';
-  ctx.fillRect(W * 0.62, 330, W * 0.26, 14);
-  // Parked seaplane, side view, brass-lit.
-  ctx.save();
-  ctx.translate(W * 0.28, 402);
-  ctx.scale(0.85, 0.85);
-  ctx.fillStyle = '#e8dcc0';
-  ctx.beginPath(); ctx.ellipse(0, 0, 170, 16, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#c9973f';
-  ctx.beginPath(); ctx.ellipse(-24, -6, 100, 24, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#9fd8e8';
-  ctx.beginPath(); ctx.ellipse(30, -14, 34, 14, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#b83a2a';
-  ctx.beginPath(); ctx.moveTo(140, -8); ctx.lineTo(196, -36); ctx.lineTo(196, 6); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = '#8a6420'; ctx.lineWidth = 5;
-  ctx.beginPath(); ctx.moveTo(-150, 0); ctx.lineTo(-150, 44); ctx.moveTo(60, 0); ctx.lineTo(60, 44); ctx.stroke();
-  ctx.fillStyle = '#8a6420';
-  ctx.fillRect(-170, 44, 40, 8); ctx.fillRect(40, 44, 40, 8);
-  ctx.restore();
-  // Brief panel.
-  pill(ctx, 48, 60, 560, 330, 'rgba(8,6,12,0.92)');
-  label(ctx, `${leg.id} — ${leg.name.toUpperCase()}`, 72, 96, B(26), '#ffd94d');
-  label(ctx, leg.sub, 72, 128, R(16), '#f5eeda');
-  label(ctx, `RINGS ${leg.rings} · PAR ${leg.par}s · WIND ${leg.wind} kts`, 72, 162, B(14), '#9fd8e8');
-  if (g.contract) {
-    label(ctx, `CONTRACT — ${g.contract.name}`, 72, 200, B(15), '#ffd94d');
-    label(ctx, g.contract.goal, 72, 224, R(14), '#f5eeda');
-    label(ctx, `PAY ${g.contract.pay} MAIL`, 72, 248, B(13), '#7ee0a0');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 692, H);
+  ctx.fillRect(692, 0, W - 692, 52);
+  ctx.fillRect(692, 596, W - 692, H - 596);
+  // Right-column window frame.
+  ctx.strokeStyle = '#c9973f'; ctx.lineWidth = 3;
+  ctx.strokeRect(700, 60, 532, 532);
+  ctx.fillStyle = 'rgba(8,6,12,0.85)';
+  ctx.fillRect(700, 60, 532, 26);
+  label(ctx, 'LIVE 3D — HANGAR APRON', 964, 73, B(12), '#ffd94d', 'center');
+  // Left column: title + subtitle.
+  label(ctx, 'CALDERA', 48, 88, 'bold 52px Georgia, serif', '#ffd94d');
+  label(ctx, 'COURIER', 48, 138, 'bold 52px Georgia, serif', '#f5eeda');
+  label(ctx, 'A 1930s brass & canvas bush seaplane · air-mail & rescue across a volcanic archipelago',
+    48, 172, R(14), '#f5eeda');
+  // Keycap menu.
+  const items = [
+    ['ENTER', 'CONTINUE', g.saves.some((s) => s) ? '' : 'NO SAVE'],
+    ['N', 'NEW SORTIE', ''],
+    ['E', 'ENDLESS', g.endless ? '' : 'LOCKED'],
+    ['C', 'AIRFRAME CODEX', ''],
+    ['F', 'FEATS', ''],
+    ['H', 'CONTROLS', ''],
+  ];
+  let y = 200;
+  for (const [key, name, badge] of items) {
+    const w = keyPill(ctx, 48, y, key, name);
+    if (badge) {
+      pill(ctx, 48 + w + 10, y, 84, 30, badge === 'LOCKED' ? 'rgba(90,20,16,0.9)' : 'rgba(40,60,40,0.9)');
+      label(ctx, badge, 48 + w + 52, y + 15, B(12), '#f5eeda', 'center');
+    }
+    y += 40;
   }
-  if (g.modifier) {
-    label(ctx, `MODIFIER — ${g.modifier.label}`, 72, 286, B(14), '#ff9a3c');
-    label(ctx, g.modifier.desc, 72, 310, R(13), '#f5eeda');
+  // Difficulty pills.
+  label(ctx, 'DIFFICULTY', 48, y + 8, B(13), '#ffd94d');
+  let dx = 168;
+  for (const d of ['Calm', 'Standard', 'Hard']) {
+    const sel = g.difficulty === d;
+    pill(ctx, dx, y - 6, 96, 28, sel ? '#c9973f' : 'rgba(8,6,12,0.85)', sel ? '#ffd94d' : undefined);
+    label(ctx, d.toUpperCase(), dx + 48, y + 8, B(12), sel ? '#1a1206' : '#f5eeda', 'center');
+    dx += 106;
   }
-  label(ctx, `SEED #${g.seed} · ${g.difficulty.toUpperCase()} · SCORE ${g.score}`, 72, 348, R(13), '#cfe3f0');
-  // Keycap actions.
-  let y = 430;
-  keyPill(ctx, 48, y, 'ENTER', 'TAKE OFF');
-  keyPill(ctx, 260, y, 'D', 'CHANGE DIFFICULTY');
-  keyPill(ctx, 500, y, 'ESC', 'BACK TO MENU');
-  // 7-tile feature strip along the bottom.
-  const tiles = ['7 LEGS', '18 CONTRACTS', '18 PERKS', '3 SETS', '18 FEATS', '3 SAVE SLOTS', 'SEEDED RUNS'];
-  const tw = (W - 96 - 6 * 10) / 7;
-  tiles.forEach((t, i) => {
+  // Save slots.
+  y += 46;
+  label(ctx, `SAVED RUNS (${g.saves.filter(Boolean).length}/3)   SEED #${g.seed}`, 48, y, B(14), '#9fd8e8');
+  y += 22;
+  for (let i = 0; i < 3; i++) {
+    pill(ctx, 48, y, 560, 24, 'rgba(8,6,12,0.8)');
+    label(ctx, `SLOT ${i + 1}`, 60, y + 12, B(12), '#ffd94d');
+    label(ctx, slotLabel(g.saves[i]), 140, y + 12, R(13), '#f5eeda');
+    y += 30;
+  }
+  // Right column: compact S1 briefing card at the window's foot.
+  pill(ctx, 716, 452, 500, 124, 'rgba(8,6,12,0.92)');
+  label(ctx, `${leg.id} — ${leg.name.toUpperCase()}`, 736, 478, B(20), '#ffd94d');
+  label(ctx, leg.sub, 736, 502, R(14), '#f5eeda');
+  label(ctx, `RINGS ${leg.rings} · PAR ${leg.par}s · WIND ${leg.wind} kts`, 736, 528, B(13), '#9fd8e8');
+  if (g.contract) label(ctx, `✦ ${g.contract.name} — ${g.contract.goal}`, 736, 552, R(13), '#cfe3f0');
+  // 7-tile feature strip: bold title + 2-line sublabel on every tile.
+  const tiles = [
+    ['7 LEGS', 'Dawn Lagoon to Volcano Rim', '7 escalating airspace legs'],
+    ['18 CONTRACTS', 'Air-mail & rescue jobs', 'with per-sortie modifiers'],
+    ['18 PERKS', 'THERMAL · TURBO', 'NAVIGATOR · 3 sets'],
+    ['3 SETS', 'Live 2-piece set bonuses', '4 pieces = full set power'],
+    ['18 FEATS', 'Pilot milestones', 'stamped onto your wings'],
+    ['3 SAVE SLOTS', 'Keep three campaigns', 'plus seeded runs'],
+    ['SEEDED RUNS', 'Every run has a seed', 'share it and race it'],
+  ];
+  const tw = (W - 96 - 6 * 10) / 7, ty = H - 96;
+  tiles.forEach(([t, s1, s2], i) => {
     const x = 48 + i * (tw + 10);
-    pill(ctx, x, H - 84, tw, 56, 'rgba(8,6,12,0.88)');
-    label(ctx, t, x + tw / 2, H - 56, B(13), '#ffd94d', 'center');
+    pill(ctx, x, ty, tw, 76, 'rgba(8,6,12,0.88)');
+    label(ctx, t, x + tw / 2, ty + 14, B(13), '#ffd94d', 'center');
+    label(ctx, s1, x + tw / 2, ty + 36, R(11), '#d8cdb4', 'center');
+    label(ctx, s2, x + tw / 2, ty + 54, R(11), '#d8cdb4', 'center');
   });
-  label(ctx, 'HANGAR & FLIGHT BRIEFING', W / 2, 34, B(15), '#ffd94d', 'center');
 }

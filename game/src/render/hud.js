@@ -1,10 +1,13 @@
 // CALDERA COURIER — render/hud.js
 // Top HUD diet: at most 2 clean rows (leg / timer / score / HDG tape;
-// then contract + weather banner), ALT/SPD tapes, pitch ladder +
-// bank reticle, throttle/boost bar, slim sets + GOALS corner card.
+// then contract + weather banner). Bottom row: real analog dials —
+// airspeed (left), attitude ball (centre), altimeter (right) — with
+// the throttle/boost bar between the gauges. The sets + GOALS corner
+// card sits top-right and is hidden while the draft modal is open.
 import { fmtInt, fmtTime, clamp } from '../core/util.js';
 import { tierName } from '../systems/momentum.js';
 import { setCounts, SETS } from '../data/perks.js';
+import { drawAirspeed, drawAltimeter, drawAttitude } from './gauges.js';
 
 function pill(ctx, x, y, w, h, fill) {
   ctx.fillStyle = fill;
@@ -55,20 +58,6 @@ export function drawHud(ctx, W, H, g) {
     pill(ctx, W - 262, y1, 250, 26, 'rgba(8,6,12,0.8)');
     text(ctx, `⚠ ${g.weather.name}`, W - 250, y1 + 13, BOLD(13), '#ffb52e');
   }
-  // ALT tape (left), SPD tape (right).
-  const ay = 120, ah = 150;
-  pill(ctx, 12, ay, 64, ah, 'rgba(8,6,12,0.8)');
-  text(ctx, 'ALT', 44, ay + 14, BOLD(12), '#9fd8e8', 'center');
-  text(ctx, `${Math.round(p.y)}`, 44, ay + 44, BOLD(20), '#f5eeda', 'center');
-  text(ctx, 'FT', 44, ay + 68, BOLD(12), '#cfe3f0', 'center');
-  ctx.fillStyle = '#4dc9ff';
-  ctx.fillRect(20, ay + ah - 16, 48 * clamp(p.y / 1200, 0, 1), 6);
-  pill(ctx, W - 76, ay, 64, ah, 'rgba(8,6,12,0.8)');
-  text(ctx, 'SPD', W - 44, ay + 14, BOLD(12), '#9fd8e8', 'center');
-  text(ctx, `${Math.round(p.speed)}`, W - 44, ay + 44, BOLD(20), '#f5eeda', 'center');
-  text(ctx, 'KTS', W - 44, ay + 68, BOLD(12), '#cfe3f0', 'center');
-  ctx.fillStyle = '#ffb52e';
-  ctx.fillRect(W - 68, ay + ah - 16, 48 * clamp(p.speed / 220, 0, 1), 6);
   // Pitch ladder + bank reticle (centre).
   const cx = W / 2, cy = H * 0.46;
   ctx.save();
@@ -83,33 +72,39 @@ export function drawHud(ctx, W, H, g) {
   ctx.beginPath();
   ctx.moveTo(cx - 26, cy); ctx.lineTo(cx - 16, cy);
   ctx.moveTo(cx + 16, cy); ctx.lineTo(cx + 26, cy); ctx.stroke();
-  // Throttle / boost bar (bottom-left) + momentum tier.
-  const bx = 12, by = H - 84;
-  pill(ctx, bx, by, 260, 52, 'rgba(8,6,12,0.85)');
-  text(ctx, 'THROTTLE', bx + 12, by + 13, BOLD(11), '#cfe3f0');
-  ctx.fillStyle = '#2a3a4a'; ctx.fillRect(bx + 12, by + 24, 150, 8);
-  ctx.fillStyle = '#4dc9ff'; ctx.fillRect(bx + 12, by + 24, 150 * p.throttle, 8);
-  ctx.fillStyle = '#2a3a4a'; ctx.fillRect(bx + 12, by + 36, 150, 8);
-  ctx.fillStyle = '#ff5a3c'; ctx.fillRect(bx + 12, by + 36, 150 * p.boost, 8);
-  text(ctx, 'BOOST', bx + 172, by + 40, BOLD(11), '#ff9a7a');
+  // Bottom dials: airspeed left, attitude centre, altimeter right.
+  const gy = H - 104;
+  drawAirspeed(ctx, 116, gy, 54, p.speed);
+  drawAttitude(ctx, W / 2, gy, 60, p.pitch, p.roll);
+  drawAltimeter(ctx, W - 116, gy, 54, p.y, p.speed * Math.sin(p.pitch) * 101);
+  // Throttle / boost bar + momentum tier, between the dials.
+  const bx = 196, by = gy - 26;
   const tierCol = g.momentum.level === 2 ? '#ff5a3c' : g.momentum.level === 1 ? '#4dc9ff' : '#d8cdb4';
-  text(ctx, tierName(g), bx + 172, by + 13, BOLD(12), tierCol);
-  // Slim corner card: sets + GOALS.
-  const counts = setCounts(g.perks);
-  const gx = W - 252, gy = H - 168;
-  pill(ctx, gx, gy, 240, 156, 'rgba(8,6,12,0.88)');
-  text(ctx, 'AIRFRAME SETS', gx + 12, gy + 14, BOLD(12), '#ffd94d');
-  let yy = gy + 32;
-  for (const key of ['THERMAL', 'TURBO', 'NAVIGATOR']) {
-    ctx.fillStyle = SETS[key].color;
-    ctx.fillRect(gx + 12, yy - 4, 10, 10);
-    text(ctx, `${key} ${counts[key]}/4`, gx + 30, yy, BOLD(12), '#f5eeda');
-    yy += 16;
-  }
-  text(ctx, `GOALS ${g.goals.filter((x) => x.done).length}/${g.goals.length}`, gx + 12, yy + 4, BOLD(12), '#9fd8e8');
-  for (const goal of g.goals) {
-    yy += 16;
-    text(ctx, `${goal.done ? '✓' : '○'} ${goal.label}`, gx + 12, yy, '12px Georgia, serif', goal.done ? '#7ee0a0' : '#cfe3f0');
+  text(ctx, tierName(g), bx, by, BOLD(12), tierCol);
+  text(ctx, 'THROTTLE', bx, by + 18, BOLD(11), '#cfe3f0');
+  ctx.fillStyle = '#2a3a4a'; ctx.fillRect(bx + 78, by + 12, 130, 8);
+  ctx.fillStyle = '#4dc9ff'; ctx.fillRect(bx + 78, by + 12, 130 * p.throttle, 8);
+  text(ctx, 'BOOST', bx, by + 36, BOLD(11), '#ff9a7a');
+  ctx.fillStyle = '#2a3a4a'; ctx.fillRect(bx + 78, by + 30, 130, 8);
+  ctx.fillStyle = '#ff5a3c'; ctx.fillRect(bx + 78, by + 30, 130 * p.boost, 8);
+  // Slim corner card: sets + GOALS, top-right, hidden in draft mode.
+  if (g.mode !== 'draft') {
+    const counts = setCounts(g.perks);
+    const gx = W - 252, gy2 = 96;
+    pill(ctx, gx, gy2, 240, 156, 'rgba(8,6,12,0.88)');
+    text(ctx, 'AIRFRAME SETS', gx + 12, gy2 + 14, BOLD(12), '#ffd94d');
+    let yy = gy2 + 32;
+    for (const key of ['THERMAL', 'TURBO', 'NAVIGATOR']) {
+      ctx.fillStyle = SETS[key].color;
+      ctx.fillRect(gx + 12, yy - 4, 10, 10);
+      text(ctx, `${key} ${counts[key]}/4`, gx + 30, yy, BOLD(12), '#f5eeda');
+      yy += 16;
+    }
+    text(ctx, `GOALS ${g.goals.filter((x) => x.done).length}/${g.goals.length}`, gx + 12, yy + 4, BOLD(12), '#9fd8e8');
+    for (const goal of g.goals) {
+      yy += 16;
+      text(ctx, `${goal.done ? '✓' : '○'} ${goal.label}`, gx + 12, yy, '12px Georgia, serif', goal.done ? '#7ee0a0' : '#cfe3f0');
+    }
   }
   // Bottom control strip: one single crisp line.
   ctx.fillStyle = 'rgba(8,6,12,0.85)';

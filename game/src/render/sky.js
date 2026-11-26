@@ -1,52 +1,88 @@
 // CALDERA COURIER — render/sky.js
-// One-style sky: gradient dome, sun with glint, drifting clouds, the
-// volcano's smoke plume and the lighthouse beams. Palette comes from
-// the leg's sky key so dawn, storm, ash and night read differently.
+// Sky, sun and weather light for the Three.js world: one background
+// colour + fog per leg sky, a warm directional sun, soft hemisphere
+// fill, drifting cloud sprites and a glowing sun disc.
+import * as THREE from '../../vendor/three.module.min.js';
 import { SKIES } from '../data/weather.js';
-import { VOLCANO } from '../entities/terrain.js';
 
-export function drawSky(ctx, W, H, g, cam) {
+function blobTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 64;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(64, 32, 4, 64, 32, 60);
+  g.addColorStop(0, 'rgba(255,255,255,0.85)');
+  g.addColorStop(0.6, 'rgba(255,255,255,0.35)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 128, 64);
+  return new THREE.CanvasTexture(c);
+}
+
+export function makeSky(scene) {
+  const hemi = new THREE.HemisphereLight(0xbfd9ff, 0x3a2a1a, 1.0);
+  const sun = new THREE.DirectionalLight(0xffe9b0, 1.7);
+  sun.position.set(500, 800, -600);
+  scene.add(hemi); scene.add(sun);
+  const tex = blobTexture();
+  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, color: 0xffd9a0, transparent: true, opacity: 0.95, depthWrite: false,
+  }));
+  sunSprite.scale.set(260, 260, 1);
+  scene.add(sunSprite);
+  const clouds = [];
+  for (let i = 0; i < 10; i++) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: tex, color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false,
+    }));
+    s.scale.set(260 + (i % 4) * 90, 70 + (i % 3) * 22, 1);
+    s.userData.base = { x: (i * 397) % 1600 - 800, y: 420 + (i % 5) * 55, z: 500 + i * 620 };
+    scene.add(s);
+    clouds.push(s);
+  }
+  // Gradient sky dome (top colour -> horizon colour), so the sky is
+  // a real gradient, not the flat scene background.
+  const domeCanvas = document.createElement('canvas');
+  domeCanvas.width = 4; domeCanvas.height = 256;
+  const domeTex = new THREE.CanvasTexture(domeCanvas);
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(9000, 24, 16),
+    new THREE.MeshBasicMaterial({ map: domeTex, side: THREE.BackSide, fog: false, depthWrite: false }),
+  );
+  dome.position.set(0, 0, 3200);
+  scene.add(dome);
+  return { hemi, sun, sunSprite, clouds, dome, domeCanvas, domeTex, lastSky: '' };
+}
+
+/** Per-leg sky: background, fog, sun position and cloud tint. */
+export function updateSky(sky, scene, g) {
   const leg = g.legs[g.leg];
-  const sky = SKIES[leg.sky] || SKIES.day;
-  const grad = ctx.createLinearGradient(0, 0, 0, H * 0.62);
-  grad.addColorStop(0, sky[0]);
-  grad.addColorStop(1, sky[1]);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H * 0.62);
-  // Sun, placed by heading so it stays put as the plane turns.
-  const sunA = g.seed * 0.13 + 0.6;
-  const sx = W / 2 + Math.sin(sunA - cam.yaw) * W * 0.42;
-  const sy = H * 0.16 + Math.cos(sunA - cam.yaw) * 20;
-  const glow = ctx.createRadialGradient(sx, sy, 4, sx, sy, 130);
-  glow.addColorStop(0, sky[2]);
-  glow.addColorStop(0.25, 'rgba(255,220,150,0.55)');
-  glow.addColorStop(1, 'rgba(255,220,150,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(sx - 130, sy - 130, 260, 260);
-  ctx.fillStyle = sky[2];
-  ctx.beginPath(); ctx.arc(sx, sy, 26, 0, Math.PI * 2); ctx.fill();
-  // Clouds: soft ellipses drifting with the clock.
-  ctx.fillStyle = leg.sky === 'night' ? 'rgba(120,140,200,0.25)' : 'rgba(255,255,255,0.5)';
-  for (let i = 0; i < 7; i++) {
-    const cx = ((i * 197 + g.time * (6 + i * 2)) % (W + 320)) - 160;
-    const cy = 46 + i * 22 + Math.sin(i * 2.1) * 14;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 90 + i * 8, 16 + (i % 3) * 4, 0, 0, Math.PI * 2);
-    ctx.fill();
+  const pal = SKIES[leg.sky] || SKIES.day;
+  // Repaint the dome gradient when the leg's sky changes.
+  if (sky.lastSky !== leg.sky) {
+    sky.lastSky = leg.sky;
+    const x = sky.domeCanvas.getContext('2d');
+    const grad = x.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, pal[0]);
+    grad.addColorStop(0.62, pal[1]);
+    grad.addColorStop(1, pal[1]);
+    x.fillStyle = grad;
+    x.fillRect(0, 0, 4, 256);
+    sky.domeTex.needsUpdate = true;
   }
-  // Volcano smoke plume, rising over the caldera when it is in view.
-  if (leg.sky === 'ash' || leg.sky === 'storm') {
-    const px = W / 2 + Math.sin(0.4 - cam.yaw) * W * 0.3;
-    ctx.fillStyle = 'rgba(70,60,58,0.55)';
-    for (let i = 0; i < 5; i++) {
-      const py = 120 - i * 26;
-      ctx.beginPath();
-      ctx.ellipse(px + Math.sin(g.time * 0.5 + i) * 18, py, 34 + i * 10, 16 + i * 3, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  scene.background = null;
+  scene.fog = new THREE.Fog(new THREE.Color(pal[1]), 900, 6500);
+  const night = leg.sky === 'night';
+  sky.hemi.intensity = night ? 0.35 : 1.0;
+  sky.sun.intensity = night ? 0.4 : 1.7;
+  sky.sun.color.set(night ? 0xdfe8ff : 0xffe9b0);
+  const a = g.seed * 0.13 + 0.6;
+  const sx = Math.sin(a) * 2600, sy = 1500, sz = -Math.cos(a) * 2600 + 3200;
+  sky.sun.position.set(sx, sy, sz);
+  sky.sunSprite.position.set(sx, sy, sz);
+  sky.sunSprite.material.color.set(pal[2]);
+  const drift = g.time * 8;
+  for (const c of sky.clouds) {
+    const b = c.userData.base;
+    c.position.set(b.x + ((drift + b.z) % 800) - 400, b.y, b.z + g.plane.z * 0.02);
+    c.material.opacity = night ? 0.22 : 0.5;
   }
-  // Haze band where sky meets sea.
-  ctx.fillStyle = sky[3];
-  ctx.fillRect(0, H * 0.5, W, H * 0.14);
-  void VOLCANO;
 }

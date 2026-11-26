@@ -1,7 +1,7 @@
 // CALDERA COURIER — ui/overlays.js
-// Small overlays over the 3D scene: pause, crash / game-over, leg
-// complete, and the "next ring" distance ribbon. Drawn last so they
-// sit above the HUD.
+// Small overlays over the 3D scene: the runway-distance ribbon (top,
+// clear of the bottom gauge row), pause, crash / game-over, leg
+// complete, and toasts. Drawn last so they sit above the HUD.
 import { pill, label, B, R } from './text.js';
 import { fmtInt } from '../core/util.js';
 import { runwayDist } from '../entities/runway.js';
@@ -11,8 +11,8 @@ export function drawOverlays(ctx, W, H, g) {
   if (g.mode === 'play' && g.runway && !p.landed) {
     const d = runwayDist(p, g.runway);
     if (d > 0 && d < 9000) {
-      pill(ctx, W / 2 - 130, H - 96, 260, 26, 'rgba(8,6,12,0.8)');
-      label(ctx, `RUNWAY ${Math.round(d)} M AHEAD`, W / 2, H - 83, B(13), '#7ee0a0', 'center');
+      pill(ctx, W / 2 - 130, 84, 260, 26, 'rgba(8,6,12,0.8)');
+      label(ctx, `RUNWAY ${Math.round(d)} M AHEAD`, W / 2, 97, B(13), '#7ee0a0', 'center');
     }
   }
   if (g.paused) {
@@ -35,7 +35,7 @@ export function drawOverlays(ctx, W, H, g) {
     label(ctx, '[ENTER] FLY AGAIN · [ESC] MENU', W / 2, H / 2 + 58, B(14), '#ffd94d', 'center');
   }
   if (g.toast) {
-    pill(ctx, W / 2 - 200, 96, 400, 30, 'rgba(8,6,12,0.85)');
-    label(ctx, g.toast, W / 2, 111, B(13), '#ffd94d', 'center');
+    pill(ctx, W / 2 - 200, 120, 400, 30, 'rgba(8,6,12,0.85)');
+    label(ctx, g.toast, W / 2, 135, B(13), '#ffd94d', 'center');
   }
 }

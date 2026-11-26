@@ -14,6 +14,12 @@ export function setupPrep() {
   g.mode = 'brief'; g.screen = 'brief';
   g.difficulty = 'Standard';
   g.score = 0;
+  // Demo save slots, so the hub shows SAVED RUNS (3/3).
+  g.saves = [
+    { seed: 4217, leg: 2, score: 6840, perks: [], feats: [], difficulty: 'Standard', when: 0 },
+    { seed: 1337, leg: 4, score: 9420, perks: [], feats: [], difficulty: 'Hard', when: 0 },
+    { seed: 9021, leg: 6, score: 12840, perks: [], feats: [], difficulty: 'Standard', when: 0 },
+  ];
   return g;
 }
 

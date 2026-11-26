@@ -1,11 +1,14 @@
 // CALDERA COURIER — render/fx.js
-// Screen-space effects: particles (ring shockwaves, contrails, boost
-// plumes, rain/ash), floating callouts and the damage vignette.
-import { project } from './projection.js';
+// Screen-space effects over the 3D world: particles (ring shockwaves,
+// contrails, boost plumes, rain/ash) projected through the 3D camera,
+// floating callouts and the damage vignette. SLIPSTREAM callouts are
+// drawn on the upper-right flank, never over the centre reticle or
+// the target ring.
+import { project3D } from './projection.js';
 
 export function drawFx(ctx, W, H, g, cam) {
   for (const pt of g.particles) {
-    const s = project(cam, W, H, pt.x, pt.y, pt.z);
+    const s = project3D(cam, W, H, pt.x, pt.y, pt.z);
     if (!s) continue;
     const a = Math.max(0, Math.min(1, pt.life));
     if (pt.kind === 'ring') {
@@ -29,20 +32,22 @@ export function drawFx(ctx, W, H, g, cam) {
       ctx.beginPath(); ctx.arc(s.x, s.y, 4, 0, Math.PI * 2); ctx.fill();
     }
   }
-  // Floating callouts: punchy, centred, fading up.
   for (const c of g.callouts) {
     const a = c.t < 1.2 ? 1 : 1 - (c.t - 1.2) / 0.4;
     ctx.globalAlpha = Math.max(0, a);
     ctx.font = c.big ? 'bold 34px Georgia, serif' : 'bold 22px Georgia, serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(8,6,12,0.9)';
-    const y = c.y - c.t * 34;
-    ctx.strokeText(c.text, c.x, y);
+    // Slipstream streaks live on the upper-LEFT flank, clear of the
+    // reticle, the ring and the top-right HUD card. The rest stay centred.
+    const flank = c.text.startsWith('SLIPSTREAM');
+    const cx = flank ? 250 : c.x;
+    const cy = flank ? 150 : c.y - c.t * 34;
+    ctx.strokeText(c.text, cx, cy);
     ctx.fillStyle = c.color;
-    ctx.fillText(c.text, c.x, y);
+    ctx.fillText(c.text, cx, cy);
     ctx.globalAlpha = 1;
   }
-  // Damage vignette.
   const dmg = g.plane.damage / 100;
   if (dmg > 0.05) {
     const grad = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.75);
